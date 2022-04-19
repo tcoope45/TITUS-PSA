@@ -1,0 +1,251 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "",
+    "Metadata": {
+
+    },
+    "Parameters": {
+      "PSAVPCcidr":{
+        "Description": "Please select your VPC cidr",
+        "type": "string"
+      },
+      "PSAPUBSNcidr": {
+        "Description": "Please select your cidr",
+        "type": "string"
+      },
+      "PSAPRISNcidr" :{
+        "Description": "Please select your cidr",
+        "type": "string"
+      },
+      "PSAPRISNAZ" : {
+        "Description": "Please select your AZ",
+        "type": "string"
+      },
+      "PSAPUBSNAZ" : {
+        "Description": "Please select your AZ",
+        "type": "string"
+    },
+    "AMIid" : {
+      "Description": "Please provide AMIid",
+      "Type": "string"
+    },
+    "InstanceType": {
+      "Description": "Please provide InstanceType",
+      "Type": "string"
+    },
+    "Mappings": {
+
+    },
+    "Conditions": {
+
+    },
+    "Resources": {
+      "PSAVPC": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": { "Ref": "PSAVPCcidr" },
+        "Tags": [{ "Key": "Name", "Value":  "PSAVPC"]
+      }
+    },
+    "PSAIGW": {
+      "Type": "AWS::EC2::InternetGateway",
+      "Properties": {
+        "Tags": [{ "Key": "Name", "Value":  "PSAIGW" }]
+      }
+    },
+    "AttachGateway": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "Properties": {
+        "VpcId": { "Ref": "PSAVPC" },
+        "InternetGatewayId": { "Ref": "PSAIGW" }
+      }
+    },
+    "PSAPUBSN": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "AvailabilityZone": { "Ref": "PSAPUBSNAZ" },
+        "VpcId": { "Ref": "PSAVPC" },
+        "CidrBlock": { "Ref": "PSAPUBSNcidr" },
+        "Tags": [{ "Key": "Name", "Value":  "PSAPUBSN" }]
+      }
+    },
+    "PSAPRISN": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "AvailabilityZone": { "Ref": "PSAPRISNAZ" },
+        "VpcId": { "Ref": "PSAVPC" },
+        "CidrBlock": { "Ref": "PSAPRISNcidr" },
+        "Tags": [{ "Key": "Name", "Value":  "PSAPRISN" }]
+      }
+    },
+    "PSAPRIRT": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": { "Ref": "PSAVPC" },
+        "Tags": [{ "Key": "Name", "Value":  "PSAPRIRT" }]
+      }
+    },
+    "PSAPUBRT": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": { "Ref": "PSAVPC" },
+        "Tags": [ { "Key": "Name", "Value":  "PSAPRIRT" }]
+      }
+    },
+    "PSAPUBRTIGW": {
+      "Type": "AWS::EC2::Route",
+      "Properties": {
+        "RouteTableId": { "Ref": "PSAPUBRT" },
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": { "Ref": "PSAIGW" }
+      }
+    },
+    "PSAPUBSNASS": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": { "Ref": "PSAPUBSN" },
+        "RouteTableId": "PSAPUBRT"
+      }
+    },
+    "PSAPRIASS": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": { "Ref": "PSAPRISN" },
+        "RouteTableId": "PSAPRIRT"
+      }
+    },
+    "PSASG" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "GroupDescription" : "Http access for load balancer",
+        "SecurityGroupIngress" : [ {
+         "IpProtocol" : "tcp",
+         "FromPort" : 80,
+         "ToPort" : 80,
+         "CidrIp" : "0.0.0.0/0
+
+        }],
+        "VpcId" : { "Ref": "PSAVPC" },
+        "Tags" :  [ { "Key": "Name", "Value":  "PSASG" }]
+      }
+    },
+    "PSAEC2-PUB": {
+      "Type": "AWS::EC2::Instance"
+      "Properties" : {
+      "ImageId":{ "Ref": "AMIid" }
+      "DisableTermination" :"false",
+      "BlockDeviceMappings" :
+         - DeviceName: /dev/sda1
+           Ebs:
+             VolumeType: gp2
+             VolumeSize: 20
+     "InstanceType" :{ "Ref": "InstanceType" },
+     "AvailabilityZone" :{ "Ref": "PSAPUBSNAZ" },
+     "SubnetId":{ "Ref": "PSAPUBSN" }
+     "OSType" :"Windows"
+      }
+    },
+    "PSAEC2-PRI1": {
+      "Type": "AWS::EC2::Instance"
+      "Properties" : {
+      "ImageId":{ "Ref": "AMIid" }
+      "DisableTermination" :"false",
+      "BlockDeviceMappings" :
+         - DeviceName: /dev/sda1
+           Ebs:
+             VolumeType: gp2
+             VolumeSize: 20
+     "InstanceType" :{ "Ref": "InstanceType" },
+     "AvailabilityZone" :{ "Ref": "PSAPRISNAZ" },
+     "SubnetId":{ "Ref": "PSAPRISN" },
+     "OSType" :"Windows"
+      }
+    },
+    "PSAEC2-PRI2": {
+      "Type": "AWS::EC2::Instance"
+      "Properties" : {
+      "ImageId":{ "Ref": "AMIid" }
+      "DisableApiTermination" :"false",
+      "BlockDeviceMappings" :
+         - DeviceName: /dev/sda1
+           Ebs:
+             VolumeType: gp2
+             VolumeSize: 20
+     "InstanceType" : { "Ref": "InstanceType" },
+     "AvailabilityZone" : { "Ref": "PSAPRISNAZ" },
+     "SubnetId":{ "Ref": "PSAPRISN" },
+     "OSType" :"Windows"
+      }
+    },
+    "PSAEC2-PRI3
+    ": {
+      "Type": "AWS::EC2::Instance"
+      "Properties" : {
+      "ImageId":{ "Ref": "AMIid" },
+      "DisableApiTermination" :"false",
+      "BlockDeviceMappings" :
+         - DeviceName: /dev/sda1
+           Ebs:
+             VolumeType: gp2
+             VolumeSize: 20
+     "InstanceType" :{ "Ref": "InstanceType" },
+     "AvailabilityZone" : { "Ref": "PSAPRISNAZ" },
+     "SubnetId":{ "Ref": "PSAPRISN" },
+     "OSType" :"Windows"
+      }
+    },
+    "PSATargetGroup" : {
+     "Type": "AWS::ElasticLoadBalancingV2::TargetGroup"
+     "Properties" : {
+       "Port": 80,
+       "VpcId": "PSAVPC_id",
+       "TARGETType" : "instance_id",
+       "HealthCheckEnabled" :"true",
+       "HealthCheckIntervalSeconds" : 200
+    "PSAALB" : {
+      "Type" : "AWS::ElasticLoadBalancingV2::LoadBalancer"
+      "Properties": {
+        "Type": "application",
+        "Scheme": "internal",
+        "Subnets": { "Ref": "PSAPUBSN" }
+        "DefaultProtocol" : "HTTP",
+  "PSAListener": {
+    "Type": "AWS::ElasticLoadBalancingV2::Listener"
+    "Properties": {
+      "LoadBalancerArn":
+      "port":
+      "protocol":
+    }
+   }
+      }
+    }
+
+     }
+   },
+   "PSARDS": {
+     "Type": "AWS::RDS::DBInstance"
+     "Properties": {
+       "MaxAllocatedStorage": "50"
+       "BackupRetentionInDays": "5",
+       "DBInstanceIdentifier": "PSARDS",
+       "MasterUsername": "PSASDBA",
+       "VpcId": { "Ref": "PSAVPC" },
+       "DBSubnetIds":{ "Ref": "PSAPRISN" },
+       "Engine": "sqlserver-ex",
+       "Version": "14.00",
+       "InstanceClass":
+       "MultiAZ": "false",
+       "StorageType": "gp2",
+       "Iops": "2000"
+
+
+
+     }
+   }
+
+
+    },
+    "Outputs": {
+
+    }
+}
